@@ -36,7 +36,7 @@ static unsigned char *ldt_backbuf;
 static unsigned char *ldt_alias;
 static uint32_t ldt_h;
 static uint32_t ldt_alias_h;
-static unsigned short dpmi_ldt_alias;
+unsigned short dpmi_ldt_alias;
 static int entry_upd;
 
 /* Note: krnl286.exe requires at least two extra pages in LDT (limit).
