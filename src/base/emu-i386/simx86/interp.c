@@ -414,9 +414,7 @@ static void HandleEmuSignals(void)
 #ifdef PROFILE
 	if (debug_level('e')) EmuSignals++;
 #endif
-	if (CEmuStat & CeS_LOCK)
-		CEmuStat &= ~CeS_LOCK;
-	else if (CEmuStat & CeS_TRAP) {
+	if (CEmuStat & CeS_TRAP) {
 		/* force exit for single step trap */
 		if (!TheCPU.err)
 			TheCPU.err = EXCP01_SSTP;
@@ -459,6 +457,7 @@ unsigned int Interp86(unsigned int PC, int mod0)
 static unsigned int _Interp86(unsigned int PC, int basemode)
 {
 	volatile unsigned int P0 = PC; /* volatile because of setjmp */
+	unsigned int lock_PC;
 	unsigned char opc;
 	unsigned short ocs = TheCPU.cs;
 	unsigned int temp;
@@ -829,6 +828,7 @@ intop3b:		{ int op = ArOpsFR[D_MO(opc)];
 			}
 			CEmuStat |= CeS_LOCK;
 			PC++;
+			lock_PC = PC;
 			break;
 /*1f*/	case POPds:	if (REALADDR()) {
 			    Gen(O_POP, mode);
@@ -1274,6 +1274,7 @@ intop3b:		{ int op = ArOpsFR[D_MO(opc)];
 			    AddrGen(A_SR_SH4, mode, REG1, e_ofsseg[REG1>>2]);
 			    if (REG1 == Ofs_SS) {
 			      CEmuStat |= CeS_LOCK;
+			      lock_PC = PC;
 			    }
 			}
 			else {
@@ -1291,6 +1292,7 @@ intop3b:		{ int op = ArOpsFR[D_MO(opc)];
 				case Ofs_DS: TheCPU.ds=sv; break;
 				case Ofs_SS: TheCPU.ss=sv;
 				    CEmuStat |= CeS_LOCK;
+				    lock_PC = PC;
 				    break;
 				case Ofs_ES: TheCPU.es=sv; break;
 				case Ofs_FS: TheCPU.fs=sv; break;
@@ -3342,6 +3344,8 @@ repag0:
 		}
 #endif
 
+		if (CEmuStat & CeS_LOCK)
+			CEmuStat &= ~(PC != lock_PC ? CeS_LOCK : CeS_TRAP);
 		if (NewNode && (CEmuStat & CeS_TRAP)) {
 			P0 = PC;
 			CODE_FLUSH();
